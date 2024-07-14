@@ -37,7 +37,7 @@ namespace HLTV.Api.Services
 
                 if (nodes == null)
                 {
-                    throw new Exception("No nodes found. Please check the XPath expression and the HTML structure of the target page.");
+                    throw new Exception("Xpath Bulunamadı.");
                 }
 
                 var teamRankings = new List<Ranking>();
@@ -133,16 +133,6 @@ namespace HLTV.Api.Services
                 }
             }
 
-            var distinctMatches = matches
-            .GroupBy(m => new { m.Team1, m.Team2, m.MatchFormat })
-            .Select(g => g.First())
-            .ToList();
-
-            return distinctMatches;
-           
-
-        }
     }
-
-
+    
 }
