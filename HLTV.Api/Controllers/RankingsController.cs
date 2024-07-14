@@ -1,9 +1,13 @@
-﻿using HLTV.Api.Contexts;
+﻿using Google.Protobuf.WellKnownTypes;
+using HLTV.Api.Contexts;
 using HLTV.Api.Models;
 using HLTV.Api.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
+using Org.BouncyCastle.Asn1.Crmf;
+using RestSharp;
 
 namespace HLTV.Api.Controllers
 {
@@ -39,7 +43,21 @@ namespace HLTV.Api.Controllers
         }
 
 
+        [HttpGet]
+        public IEnumerable<Match> GetMatches()
+        {
+            return _hltvService.GetUpcomingMatches();
+        }
 
 
+
+       
+
+            
+
+
+       
+   
     }
+
 }

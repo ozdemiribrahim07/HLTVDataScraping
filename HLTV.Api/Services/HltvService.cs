@@ -2,15 +2,21 @@
 using HtmlAgilityPack;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
+using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
+using System;
+using System.Collections.Generic;
 using Org.BouncyCastle.Utilities.IO;
 using System.Net;
 using System.Xml.Serialization;
+using OpenQA.Selenium.Support.UI;
 
 namespace HLTV.Api.Services
 {
     public class HltvService
     {
+        private readonly string _url = "https://www.hltv.org/matches";
+
         public async Task<List<Ranking>> ScrapeRanking(string url)
         {
 
@@ -20,7 +26,7 @@ namespace HLTV.Api.Services
             {
                 driver.Navigate().GoToUrl("https://www.hltv.org/ranking/teams/2024/july/8");
 
-                System.Threading.Thread.Sleep(5000); 
+                System.Threading.Thread.Sleep(5000);
 
                 var html = driver.PageSource;
 
@@ -63,6 +69,80 @@ namespace HLTV.Api.Services
 
         }
 
+        public List<Match> GetUpcomingMatches()
+        {
+            //Selenium işlemleri 
+            var options = new ChromeOptions();
+
+
+            using var driver = new ChromeDriver(options);
+            driver.Navigate().GoToUrl(_url);
+
+            WebDriverWait wait = new WebDriverWait(driver, TimeSpan.FromSeconds(20));
+            wait.Until(drv => drv.FindElement(By.XPath("//div[contains(@class, 'upcomingMatches')]")));
+
+            var pageSource = driver.PageSource;
+            driver.Quit();
+
+            // HtmlAgilityPack ile sayfa kaynağını yükle
+            var htmlDoc = new HtmlDocument();
+            htmlDoc.LoadHtml(pageSource);
+
+            var matchNodes = htmlDoc.DocumentNode.SelectNodes("//div[contains(@class, 'upcomingMatch')]");
+
+            var matches = new List<Match>();
+
+            if (matchNodes != null)
+            {
+                foreach (var node in matchNodes)
+                {
+                    var matchTeamsNode = node.SelectSingleNode(".//div[@class='matchTeams text-ellipsis']");
+
+
+                    if (matchTeamsNode is null)
+                    {
+                        continue;
+                    }
+
+                    
+                    var team1Name = matchTeamsNode.SelectSingleNode(".//div[@class='matchTeam team1']//div[@class='matchTeamName text-ellipsis']")?.InnerText.Trim();
+
+                    var team2Name = matchTeamsNode.SelectSingleNode(".//div[@class='matchTeam team2']//div[@class='matchTeamName text-ellipsis']")?.InnerText.Trim();
+
+
+                    var team1Logo = matchTeamsNode.SelectSingleNode(".//div[@class='matchTeam team1']//img")?.GetAttributeValue("src", "");
+
+                    var team2Logo = matchTeamsNode.SelectSingleNode(".//div[@class='matchTeam team2']//img")?.GetAttributeValue("src", "");
+
+                    var timeString = node.SelectSingleNode(".//div[@class='matchTime']").GetAttributeValue("data-unix", "");
+
+                    var matchFormat = node.SelectSingleNode(".//div[@class='matchMeta']")?.InnerText.Trim();
+
+                    var eventString = node.SelectSingleNode(".//div[@class='matchEvent']//div[@class='matchEventName gtSmartphone-only']")?.InnerText.Trim();
+
+                    matches.Add(new Match
+                    {
+                        Team1 = team1Name,
+                        Logo1 = team1Logo,
+                        Team2 = team2Name,
+                        Logo2 = team2Logo,
+                        MatchTime = DateTimeOffset.FromUnixTimeMilliseconds(long.Parse(timeString)).UtcDateTime,
+                        Event = eventString,
+                        MatchFormat = matchFormat
+                    });
+                }
+            }
+
+            var distinctMatches = matches
+            .GroupBy(m => new { m.Team1, m.Team2, m.MatchFormat })
+            .Select(g => g.First())
+            .ToList();
+
+            return distinctMatches;
+           
+
+        }
     }
-    
+
+
 }
